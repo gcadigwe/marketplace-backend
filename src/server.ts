@@ -12,6 +12,8 @@ import {
 import multer from "multer";
 
 import { ListVideoNFT } from "./listing/list";
+import fs from "fs";
+import https from "https";
 
 async function run() {
   const app = express();
@@ -41,12 +43,53 @@ async function run() {
 
   // getSwapLength();
 
-  app.listen(PORT, async () => {
-    console.log("Server starting on port : " + PORT);
-    await authenticate();
-    // await createSwapUpdatesModal();
-    // await createAuctionUpdatesModel();
-  });
+  try {
+    const privateKey = fs.readFileSync(
+      "/etc/letsencrypt/live/prod.alltokenfootball.com/privkey.pem",
+      "utf8"
+    );
+    const certificate = fs.readFileSync(
+      "/etc/letsencrypt/live/prod.alltokenfootball.com/cert.pem",
+      "utf8"
+    );
+    const ca = fs.readFileSync(
+      "/etc/letsencrypt/live/prod.alltokenfootball.com/chain.pem",
+      "utf8"
+    );
+    const credentials = {
+      key: privateKey,
+      cert: certificate,
+      ca: ca,
+    };
+
+    const server = https.createServer(credentials, app);
+    server.listen(PORT, async () => {
+      console.log("Https Server starting on port : " + PORT);
+      //await db.sequelize.sync({force: true});
+      await authenticate();
+    });
+  } catch (error) {
+    console.log("got error", error);
+    app.listen({ port: PORT }, async () => {
+      console.log("error got, Server up on http://localhost:" + PORT);
+      //await db.sequelize.sync({force: true});
+      //process.exit(1);
+      await authenticate();
+      console.log("Database Authenticate!");
+      // await db.sequelize.sync({force: true});
+      // console.log("Database Syncronized!");
+      // console.log(
+      //   "Hello! The API is at " + process.env.ORIGIN + ":" + PORT + "/api"
+      // );
+    });
+  }
+
+  // app.listen(PORT, async () => {
+  //   console.log("Server starting on port : " + PORT);
+  //   await authenticate();
+  //   // await createSwapUpdatesModal();
+  //   // await createAuctionUpdatesModel();
+  // });
 }
 
 run();
